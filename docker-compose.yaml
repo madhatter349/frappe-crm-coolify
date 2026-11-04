@@ -209,7 +209,7 @@ services:
     command:
       - |
         while true; do
-          bench --site "$$SITE_NAME" execute frappe.utils.scheduler.enqueue_events_for_all_sites || echo "scheduler tick failed at $$(date -Is)"
+          bench --site "$$SITE_NAME" execute frappe.utils.scheduler.enqueue_events --args "[\"$$SITE_NAME\"]" || echo "scheduler tick failed at $$(date -Is)"
           sleep 60
         done
     environment:
