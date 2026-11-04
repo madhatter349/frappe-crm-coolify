@@ -41,6 +41,10 @@ x-configurator-done: &configurator_done
   configurator:
     condition: service_completed_successfully
 
+x-init-site-done: &init_site_done
+  init-site:
+    condition: service_completed_successfully
+
 services:
   db:
     image: mariadb:11.8
@@ -115,7 +119,7 @@ services:
           echo "bootstrapping site $$SITE_NAME"
           bench drop-site "$$SITE_NAME" --db-root-password "$$DB_PASSWORD" --no-backup --force >/dev/null 2>&1 || true
           rm -rf "sites/$$SITE_NAME"
-          bench new-site "$$SITE_NAME" --db-type mariadb --db-host db --db-port 3306 --db-root-password "$$DB_PASSWORD" --admin-password "$$ADMIN_PASSWORD" --install-app crm --set-default
+          bench new-site "$$SITE_NAME" --db-type mariadb --db-host db --db-port 3306 --mariadb-user-host-login-scope=% --db-root-password "$$DB_PASSWORD" --admin-password "$$ADMIN_PASSWORD" --install-app crm --set-default
         fi
     environment:
       SITE_NAME: ${SITE_NAME:?SITE_NAME is required}
@@ -135,7 +139,7 @@ services:
     restart: unless-stopped
     volumes: *frappe_sites
     depends_on:
-      <<: [*db_ready, *configurator_done]
+      <<: [*db_ready, *configurator_done, *init_site_done]
       redis-cache:
         condition: service_started
       redis-queue:
@@ -174,7 +178,7 @@ services:
     restart: unless-stopped
     volumes: *frappe_sites
     depends_on:
-      <<: [*db_ready, *configurator_done]
+      <<: [*db_ready, *configurator_done, *init_site_done]
       redis-queue:
         condition: service_started
 
@@ -184,7 +188,7 @@ services:
     restart: unless-stopped
     volumes: *frappe_sites
     depends_on:
-      <<: [*db_ready, *configurator_done]
+      <<: [*db_ready, *configurator_done, *init_site_done]
 
   queue-long:
     <<: *frappe_image
@@ -192,7 +196,7 @@ services:
     restart: unless-stopped
     volumes: *frappe_sites
     depends_on:
-      <<: [*db_ready, *configurator_done]
+      <<: [*db_ready, *configurator_done, *init_site_done]
 
   scheduler:
     <<: *frappe_image
@@ -200,7 +204,7 @@ services:
     restart: unless-stopped
     volumes: *frappe_sites
     depends_on:
-      <<: [*db_ready, *configurator_done]
+      <<: [*db_ready, *configurator_done, *init_site_done]
 
   # Daily logical backup (database + uploaded files) inside the sites volume,
   # which is itself included in the host's nightly restic snapshot to B2. No
@@ -228,7 +232,7 @@ services:
     restart: unless-stopped
     volumes: *frappe_sites
     depends_on:
-      <<: [*db_ready, *configurator_done]
+      <<: [*db_ready, *configurator_done, *init_site_done]
 
 volumes:
   sites:
