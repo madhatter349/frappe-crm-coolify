@@ -107,6 +107,12 @@ export FRAPPE_MCP_AUTH="token <api_key>:<api_secret>"
 opencode                              # project config is picked up automatically
 ```
 
+The agent runs as **`agent@forefrontinvestors.com`** (Sales Manager role, no
+Desk login), so MCP can do exactly what a salesperson can do and nothing more.
+`scripts/site-setup.py` sets the MCP fields; the API user and keys are created
+once per install (see "Agent account" below). Rotate a key by generating a new
+one on the User record; the old one stops working immediately.
+
 `agents/AGENTS.md` is the agent brief: CRM data model, the operations that must
 go through whitelisted methods (`convert_to_deal`), and the "ask before writing"
 rules. The API user behind `FRAPPE_MCP_AUTH` should be a dedicated Sales Manager
@@ -117,6 +123,24 @@ Desk, agents, tools, triggers and RAG knowledge bases. It needs an LLM
 credential: add a **Flow Provider** (provider `deepseek`, base URL
 `https://api.deepseek.com`, API key) and a **Flow Model** with model id
 `deepseek/deepseek-flash`.
+
+## Agent account
+
+| | |
+| --- | --- |
+| User | `agent@forefrontinvestors.com` — System User, role **Sales Manager**, no Desk login |
+| Auth | `Authorization: token <api_key>:<api_secret>` against `/api/v2/mcp` |
+
+Create or rotate it in the Desk (User → API Access → Generate Keys) or with:
+
+```bash
+bench --site <site> execute frappe.client.insert --args \
+  '[{"doctype": "User", "email": "agent@example.com", "first_name": "Agent", "user_type": "System User"}]'
+```
+
+MCP discovery (`search_doctypes`, `get_doctype_schema`) returns metadata to any
+authenticated user; every document read/write is checked against the agent's
+roles, so keep the account narrow and never use Administrator.
 
 ## Scheduler
 
