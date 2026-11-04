@@ -21,10 +21,14 @@
 name: frappe-crm
 
 x-frappe-image: &frappe_image
-  image: ${CUSTOM_IMAGE:-ghcr.io/frappe/crm}:${CUSTOM_TAG:-v1.92.0}
+  image: ${CUSTOM_IMAGE:-frappe-crm}:${CUSTOM_TAG:-1.92.0}
   restart: unless-stopped
   platform: linux/amd64
-  pull_policy: ${PULL_POLICY:-missing}
+  # Built on the Coolify host by scripts/build-image.sh: the published
+  # ghcr.io/frappe/crm image no longer contains the crm app (upstream build
+  # passes APPS_JSON_BASE64 to a Containerfile that now needs a secret mount).
+  # Nothing to pull: the tag exists locally before the first deploy.
+  pull_policy: ${PULL_POLICY:-never}
 
 x-frappe-sites: &frappe_sites
   - sites:/home/frappe/frappe-bench/sites
@@ -101,10 +105,12 @@ services:
     command:
       - >
         set -e;
-        if bench --site "$$SITE_NAME" list-apps >/dev/null 2>&1; then
-          echo "site $$SITE_NAME already exists - nothing to do";
+        [ -n "$$DB_PASSWORD" ] || { echo "DB_PASSWORD is empty"; exit 1; };
+        if bench --site "$$SITE_NAME" list-apps 2>/dev/null | grep -qx "crm"; then
+          echo "site $$SITE_NAME already has crm - nothing to do";
         else
-          echo "creating site $$SITE_NAME";
+          echo "bootstrapping site $$SITE_NAME";
+          rm -rf "sites/$$SITE_NAME";
           bench new-site "$$SITE_NAME"
             --db-type mariadb
             --db-host db

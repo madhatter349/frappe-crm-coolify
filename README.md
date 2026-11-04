@@ -5,10 +5,32 @@ deployed as a Coolify docker-compose application.
 
 The stack is the upstream `frappe/frappe_docker` production composition
 (`backend`, `frontend`, `websocket`, two queue workers, `scheduler`,
-MariaDB, two Redis instances) running the official `ghcr.io/frappe/crm` image —
-Frappe Framework v15 with the `crm` app baked in. Coolify's Traefik terminates
-TLS and routes to `frontend:8080`; nothing here publishes a host port or
-writes proxy labels.
+MariaDB, two Redis instances). Coolify's Traefik terminates TLS and routes to
+`frontend:8080`; nothing here publishes a host port or writes proxy labels.
+
+## Image
+
+`frappe-crm:1.92.0` is built on the Coolify host by `scripts/build-image.sh`
+using `frappe_docker/images/layered/Containerfile` with `apps.json` pointing at
+`frappe/crm@v1.92.0` (Frappe Framework v15).
+
+We do **not** pull `ghcr.io/frappe/crm:v1.92.0`: as of 2026-11-04 that image
+contains only the framework. Its release workflow passes `APPS_JSON_BASE64` as
+a build argument, but the Containerfile now reads `apps.json` from a BuildKit
+secret mount, so the app list is silently ignored. Verified on the host:
+
+```console
+$ docker run --rm --entrypoint bash ghcr.io/frappe/crm:v1.92.0 -c 'ls apps'
+frappe
+```
+
+Rebuild after a version bump, then redeploy from Coolify:
+
+```bash
+CRM_BRANCH=v1.93.0 TAG=1.93.0 ./scripts/build-image.sh
+```
+
+The compose file pins the local tag and sets `pull_policy: never`.
 
 ## Environment contract
 
@@ -17,8 +39,8 @@ in this repository.
 
 | Variable | Required | Meaning |
 | --- | --- | --- |
-| `CUSTOM_IMAGE` | no | defaults to `ghcr.io/frappe/crm` |
-| `CUSTOM_TAG` | no | defaults to the pinned release `v1.92.0` |
+| `CUSTOM_IMAGE` | no | defaults to the locally built `frappe-crm` |
+| `CUSTOM_TAG` | no | defaults to the pinned release `1.92.0` |
 | `DB_PASSWORD` | **yes** | MariaDB root password |
 | `SITE_NAME` | **yes** | Frappe site name, equal to the public hostname |
 | `ADMIN_PASSWORD` | **yes** | Administrator password set at site creation |

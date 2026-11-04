@@ -22,11 +22,15 @@ done
 ok "all expected services present"
 
 # --- 2. the image is pinned to a release, never a floating tag ------------
-grep -q 'image: ${CUSTOM_IMAGE:-ghcr.io/frappe/crm}:${CUSTOM_TAG:-v[0-9][0-9.]*}' "$COMPOSE" \
-  || fail "frappe image must be pinned via CUSTOM_TAG default of a vX.Y.Z release"
-grep -qE 'CUSTOM_TAG:-latest|CUSTOM_TAG:-stable|CUSTOM_TAG:-develop|CUSTOM_TAG:-main|CUSTOM_TAG:-nightly' "$COMPOSE" \
+grep -q 'image: ${CUSTOM_IMAGE:-frappe-crm}:${CUSTOM_TAG:-[0-9][0-9.]*}' "$COMPOSE" \
+  || fail "frappe image must be pinned via CUSTOM_TAG default of an X.Y.Z release"
+grep -qE 'CUSTOM_TAG:-(latest|stable|develop|main|nightly)' "$COMPOSE" \
   && fail "CUSTOM_TAG must not default to a floating tag"
-ok "image pinned to a release tag"
+grep -q 'pull_policy: ${PULL_POLICY:-never}' "$COMPOSE" \
+  || fail "the locally built image must not be pulled"
+[ -x scripts/build-image.sh ] || fail "scripts/build-image.sh must exist and document the image build"
+grep -q 'v1\.92\.0' scripts/build-image.sh || fail "build-image.sh must pin the crm release"
+ok "image pinned to a release tag, built locally"
 
 # --- 3. no host port publishing, no hand-written proxy labels -------------
 grep -qE '^[[:space:]]+ports:' "$COMPOSE" && fail "no service may publish a host port; Coolify routes internally"
