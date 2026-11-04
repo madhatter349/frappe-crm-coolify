@@ -198,9 +198,21 @@ services:
     depends_on:
       <<: [*db_ready, *configurator_done, *init_site_done]
 
+  # Ticks the Frappe scheduler every 60s. `bench schedule` runs the same
+  # enqueue loop in-process, but in this stack its loop stopped enqueueing
+  # while still holding its file lock (observed 2026-11-04), leaving email
+  # pulls and the outgoing queue stalled with no log line. One short-lived
+  # process per tick is deterministic and each tick is visible in the logs.
   scheduler:
     <<: *frappe_image
-    command: ["bench", "schedule"]
+    command:
+      - |
+        while true; do
+          bench --site "$$SITE_NAME" execute frappe.utils.scheduler.enqueue_events_for_all_sites || echo "scheduler tick failed at $$(date -Is)"
+          sleep 60
+        done
+    environment:
+      SITE_NAME: ${SITE_NAME:?SITE_NAME is required}
     restart: unless-stopped
     volumes: *frappe_sites
     depends_on:
