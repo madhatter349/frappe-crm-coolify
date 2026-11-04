@@ -124,6 +124,26 @@ credential: add a **Flow Provider** (provider `deepseek`, base URL
 `https://api.deepseek.com`, API key) and a **Flow Model** with model id
 `deepseek/deepseek-flash`.
 
+## Property database (Actovia export)
+
+`Property` is a custom DocType (module `FCRM`, 107 fields, named by BBL) holding
+the uploaded Actovia property export — building facts, mortgage/lender, tax
+delinquency, judgments, valuation and up to three contacts per property.
+
+- **Where:** `https://frappe.forefrontinvestors.com/desk/property` (Desk list
+  view with search/filters). The Frappe **CRM app UI** only renders its own
+  lead/deal screens, so custom records live in the Desk, not in `/crm`.
+- **Access:** System Manager, Sales Manager (read/write/create) and Sales User
+  (read). MCP and REST inherit those permissions.
+- **Schema and importer:** `scripts/property-doctype.json` and
+  `scripts/import-properties.py` recreate the DocType and upsert rows from a
+  TSV with the original 107-column header. The TSV itself contains owner names,
+  phones and emails and is deliberately **not** in this repository.
+- Imported 2026-11-04: 14 records. Every column of every row was verified
+  against the source TSV, and the six rows that were not already in the
+  workspace export were cross-checked field-by-field against the independent
+  47-column fixture.
+
 ## Agent account
 
 | | |
