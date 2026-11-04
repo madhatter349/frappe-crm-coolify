@@ -113,7 +113,7 @@ services:
       - |
         set -e
         [ -n "$$DB_PASSWORD" ] || { echo "DB_PASSWORD is empty"; exit 1; }
-        if bench --site "$$SITE_NAME" list-apps 2>/dev/null | cut -f1 | grep -qx "crm"; then
+        if bench --site "$$SITE_NAME" list-apps 2>/dev/null | grep -qE "^crm[[:space:]]"; then
           echo "site $$SITE_NAME already has crm - nothing to do"
         else
           echo "bootstrapping site $$SITE_NAME"
