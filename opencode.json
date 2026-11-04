@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "deepseek/deepseek-flash",
+  "small_model": "deepseek/deepseek-flash",
+  "instructions": ["agents/AGENTS.md"],
+  "mcp": {
+    "frappe-crm": {
+      "type": "remote",
+      "url": "https://frappe.forefrontinvestors.com/api/v2/mcp",
+      "headers": {
+        "Authorization": "{env:FRAPPE_MCP_AUTH}"
+      }
+    }
+  }
+}

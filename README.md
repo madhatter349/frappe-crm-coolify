@@ -10,9 +10,10 @@ MariaDB, two Redis instances). Coolify's Traefik terminates TLS and routes to
 
 ## Image
 
-`frappe-crm:1.92.0` is built on the Coolify host by `scripts/build-image.sh`
+`frappe-crm:1.92.0-v16` is built on the Coolify host by `scripts/build-image.sh`
 using `frappe_docker/images/layered/Containerfile` with `apps.json` pointing at
-`frappe/crm@v1.92.0` (Frappe Framework v15).
+`frappe/crm@v1.92.0` plus `frappe/flow@develop`, on Frappe Framework **v16**
+(required for the built-in MCP server and the AI Agents settings).
 
 We do **not** pull `ghcr.io/frappe/crm:v1.92.0`: as of 2026-11-04 that image
 contains only the framework. Its release workflow passes `APPS_JSON_BASE64` as
@@ -27,8 +28,13 @@ frappe
 Rebuild after a version bump, then redeploy from Coolify:
 
 ```bash
-CRM_BRANCH=v1.93.0 TAG=1.93.0 ./scripts/build-image.sh
+CRM_BRANCH=v1.93.0 TAG=1.93.0-v16 ./scripts/build-image.sh
+# without Flow: FLOW_BRANCH="" TAG=1.92.0-v16 ./scripts/build-image.sh
 ```
+
+The `init-site` service runs `bench --site <site> migrate` on every deploy, so a
+site carried across an image bump (v15 → v16) is migrated by the same deploy
+that swaps the image.
 
 The compose file pins the local tag and sets `pull_policy: never`.
 
@@ -83,6 +89,34 @@ in this repository.
 Named volumes survive redeploys. They live on the Coolify host, so the host's
 nightly restic snapshot to B2 covers them; the independent logical dump in
 `/var/backups/coolify-dumps` also picks up this stack's MariaDB container.
+
+## AI agents (MCP + opencode + Flow)
+
+Frappe v16 ships an MCP server at `/api/v2/mcp` (Streamable HTTP, 13 tools,
+runs as the authenticated user, OAuth2 or `Authorization: token KEY:SECRET`).
+It is enabled in **System Settings → AI Agents** (Enable MCP, Server Name,
+Agent Instructions); `scripts/site-setup.py` turns it on and writes the site
+guidance.
+
+`opencode.json` in this repo points opencode at **DeepSeek V4.1 Flash**
+(`deepseek/deepseek-flash`) and registers the MCP endpoint:
+
+```bash
+export DEEPSEEK_API_KEY=sk-...        # DeepSeek platform key
+export FRAPPE_MCP_AUTH="token <api_key>:<api_secret>"
+opencode                              # project config is picked up automatically
+```
+
+`agents/AGENTS.md` is the agent brief: CRM data model, the operations that must
+go through whitelisted methods (`convert_to_deal`), and the "ask before writing"
+rules. The API user behind `FRAPPE_MCP_AUTH` should be a dedicated Sales Manager
+account, not Administrator — MCP can only do what that user can do.
+
+**Flow** (installed with the image) is the in-site assistant: Ctrl/Cmd+I in the
+Desk, agents, tools, triggers and RAG knowledge bases. It needs an LLM
+credential: add a **Flow Provider** (provider `deepseek`, base URL
+`https://api.deepseek.com`, API key) and a **Flow Model** with model id
+`deepseek/deepseek-flash`.
 
 ## Scheduler
 

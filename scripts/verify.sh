@@ -22,7 +22,7 @@ done
 ok "all expected services present"
 
 # --- 2. the image is pinned to a release, never a floating tag ------------
-grep -q 'image: ${CUSTOM_IMAGE:-frappe-crm}:${CUSTOM_TAG:-[0-9][0-9.]*}' "$COMPOSE" \
+grep -qE 'image: \$\{CUSTOM_IMAGE:-frappe-crm\}:\$\{CUSTOM_TAG:-[0-9][0-9.]*(-[a-z0-9]+)?\}' "$COMPOSE" \
   || fail "frappe image must be pinned via CUSTOM_TAG default of an X.Y.Z release"
 grep -qE 'CUSTOM_TAG:-(latest|stable|develop|main|nightly)' "$COMPOSE" \
   && fail "CUSTOM_TAG must not default to a floating tag"

@@ -23,6 +23,22 @@ JOSH_PW = os.environ["JOSH_PW"]
 
 # --- site settings ----------------------------------------------------------
 frappe.db.set_single_value("System Settings", "enable_scheduler", 1)
+
+# MCP server for AI agents (Frappe v16+). Harmless no-op on older sites.
+settings_meta = frappe.get_meta("System Settings")
+if settings_meta.has_field("enable_mcp"):
+    frappe.db.set_single_value("System Settings", "enable_mcp", 1)
+if settings_meta.has_field("server_name"):
+    frappe.db.set_single_value("System Settings", "server_name", "Frappe CRM")
+if settings_meta.has_field("agent_instructions"):
+    frappe.db.set_single_value(
+        "System Settings",
+        "agent_instructions",
+        "This is the Forefront Investors sales CRM. Leads are CRM Lead, qualified "
+        "opportunities are CRM Deal; convert a lead only through "
+        "crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal. Read CRM Lead Status "
+        "and CRM Deal Status before setting status, and ask before deleting records.",
+    )
 frappe.db.set_single_value("System Settings", "time_zone", "America/New_York")
 frappe.db.set_single_value("System Settings", "language", "en")
 frappe.db.commit()
