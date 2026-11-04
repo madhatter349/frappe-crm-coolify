@@ -32,6 +32,18 @@ CRM_BRANCH=v1.93.0 TAG=1.93.0 ./scripts/build-image.sh
 
 The compose file pins the local tag and sets `pull_policy: never`.
 
+## This deployment
+
+| | |
+| --- | --- |
+| URL | `https://frappe.forefrontinvestors.com` |
+| Login page | `https://frappe.forefrontinvestors.com/login` |
+| CRM app | `https://frappe.forefrontinvestors.com/crm` (login required; guests get 403 by design) |
+| Coolify app | `frappe-crm` (uuid `adtxhdv8afl5pynoc2pr1yfy`), project `Frappe CRM` |
+| Site name | `frappe.forefrontinvestors.com` (same as the hostname; Frappe resolves by Host) |
+| Stack | Frappe Framework 15.126.0 + crm 1.92.0 |
+| Mailbox | `josh@forefrontinvestors.com` via Purelymail, IMAP + SMTP |
+
 ## Environment contract
 
 Set these in Coolify (App → Environment Variables). Nothing secret is stored
@@ -91,11 +103,27 @@ bench --site <SITE_NAME> --force restore \
 
 ## Email (two-way)
 
-Frappe sends and receives through an **Email Account** (Desk → Email Account):
-SMTP for outgoing, IMAP for incoming, with the account marked default outgoing
-and default incoming. The CRM-side custom field
-`create_lead_from_incoming_email` turns first-contact mail into a CRM Lead;
-replies are attached to the existing lead/deal thread by sender address.
+The live account is **Josh - Forefront Investors** (`josh@forefrontinvestors.com`):
+
+| Setting | Value |
+| --- | --- |
+| Incoming | IMAP `imap.purelymail.com:993`, SSL, folder `INBOX`, sync ALL, initial 250 |
+| Outgoing | SMTP `smtp.purelymail.com:587`, STARTTLS |
+| Defaults | default outgoing **and** default incoming account |
+| Sender | always the account address (`always_use_account_email_id_as_sender`) |
+| Lead capture | `create_lead_from_incoming_email` = on |
+
+Incoming mail is pulled every 10 minutes by the scheduler
+(`email_account.pull`); the outbound queue is flushed every 4 minutes
+(`frappe.email.queue.flush`). Replies are threaded onto the existing lead by
+`In-Reply-To`/sender, and first-contact mail from an unknown sender creates a
+CRM Lead with source `Email`.
+
+### Email in the product
+
+Frappe sends and receives through an **Email Account** (Desk → Email Account),
+configured as above. The CRM-side custom field `create_lead_from_incoming_email`
+turns first-contact mail into a CRM Lead.
 
 ## Operations
 
