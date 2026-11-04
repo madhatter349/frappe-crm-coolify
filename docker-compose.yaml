@@ -113,6 +113,7 @@ services:
           echo "site $$SITE_NAME already has crm - nothing to do"
         else
           echo "bootstrapping site $$SITE_NAME"
+          bench drop-site "$$SITE_NAME" --db-root-password "$$DB_PASSWORD" --no-backup --force >/dev/null 2>&1 || true
           rm -rf "sites/$$SITE_NAME"
           bench new-site "$$SITE_NAME" --db-type mariadb --db-host db --db-port 3306 --db-root-password "$$DB_PASSWORD" --admin-password "$$ADMIN_PASSWORD" --install-app crm --set-default
         fi
