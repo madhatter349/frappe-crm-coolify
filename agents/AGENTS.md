@@ -48,6 +48,20 @@ around it with `call_method`.
 - If forecasting is on in `FCRM Settings`, every deal save needs
   `expected_deal_value` and `expected_closure_date`.
 
+## Properties
+
+The site also holds the Actovia property database as the `Property` DocType
+(107 fields, named by BBL, e.g. `B-2287-78`). Use it for building facts,
+zoning, valuations, mortgages/lenders, judgments and up to three contacts
+(`contact1_*` … `contact3_*`).
+
+- Read with `list_documents` / `get_document` on `Property`; filter by
+  `zip`, `type`, `zoning`, `units`, `full_val`, `contact1_full_name`.
+- It is **not** linked to CRM Lead/Deal yet: a property is not an opportunity.
+  Do not create leads from properties unless asked.
+- Property records are read-mostly reference data. Do not edit or delete them
+  without an explicit instruction naming the BBL.
+
 ## Safety
 
 - Default to read-only. Ask before `create_document`, `update_document`,
