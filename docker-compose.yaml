@@ -168,6 +168,14 @@ services:
       CLIENT_MAX_BODY_SIZE: "50m"
     restart: unless-stopped
     volumes: *frappe_sites
+    # Coolify reads this to report the app as healthy. It only proves nginx
+    # + backend + DB are answering; the CRM page itself is checked out of band.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS --max-time 5 http://127.0.0.1:8080/api/method/ping > /dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
     expose:
       - "8080"
     depends_on:
