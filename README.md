@@ -84,12 +84,38 @@ Named volumes survive redeploys. They live on the Coolify host, so the host's
 nightly restic snapshot to B2 covers them; the independent logical dump in
 `/var/backups/coolify-dumps` also picks up this stack's MariaDB container.
 
+## Scheduler
+
+The `scheduler` service runs a 60-second ticker that calls
+`frappe.utils.scheduler.enqueue_events` for the site. Upstream starts
+`bench schedule`, whose in-process loop was observed here holding its lock but
+never enqueuing (no jobs, no log line) after a restart; the external ticker is
+deterministic and visible. Every scheduled job type (email pull, queue flush,
+CRM automations, reminders) still runs through Frappe's own scheduler.
+
+The `frontend` service has a healthcheck on `/api/method/ping`, so Coolify and
+Docker both report the stack as healthy. The one-shot `configurator` and
+`init-site` services use `restart: "no"`, which Coolify treats as "not part of
+app health" rather than a degraded service.
+
 ## Backups
 
 `backup` runs `bench --site <SITE_NAME> backup --with-files` 15 minutes after
 the stack starts and then every `BACKUP_INTERVAL_SECONDS`, keeping
 `BACKUP_KEEP_DAYS` days of database + files archives under
 `sites/<SITE_NAME>/private/backups/`.
+
+Three layers, outside-in:
+
+1. the in-stack `bench backup` above (database + public/private files);
+2. the host's nightly `dump-coolify-dbs.sh` logical dump of this MariaDB
+   container (patched 2026-11-04 to detect the `mariadb:11` image, whose server
+   binary lives in the entrypoint, and to use `mariadb-dump`);
+3. the host's nightly restic snapshot of `/var/lib/docker/volumes`, which
+   contains the `sites` and `db-data` volumes of this stack.
+
+A restore of a `bench backup` into a scratch site was performed on 2026-11-04
+and matched the live site's record counts.
 
 Restore into the same site:
 
