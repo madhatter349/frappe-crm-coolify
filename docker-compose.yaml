@@ -102,23 +102,19 @@ services:
   init-site:
     <<: *frappe_image
     entrypoint: ["bash", "-c"]
+    # One command per line: a folded YAML line break inside `bench new-site`
+    # would split the flags off the command and bench would prompt for the root
+    # password instead of taking --db-root-password.
     command:
-      - >
-        set -e;
-        [ -n "$$DB_PASSWORD" ] || { echo "DB_PASSWORD is empty"; exit 1; };
+      - |
+        set -e
+        [ -n "$$DB_PASSWORD" ] || { echo "DB_PASSWORD is empty"; exit 1; }
         if bench --site "$$SITE_NAME" list-apps 2>/dev/null | grep -qx "crm"; then
-          echo "site $$SITE_NAME already has crm - nothing to do";
+          echo "site $$SITE_NAME already has crm - nothing to do"
         else
-          echo "bootstrapping site $$SITE_NAME";
-          rm -rf "sites/$$SITE_NAME";
-          bench new-site "$$SITE_NAME"
-            --db-type mariadb
-            --db-host db
-            --db-port 3306
-            --db-root-password "$$DB_PASSWORD"
-            --admin-password "$$ADMIN_PASSWORD"
-            --install-app crm
-            --set-default;
+          echo "bootstrapping site $$SITE_NAME"
+          rm -rf "sites/$$SITE_NAME"
+          bench new-site "$$SITE_NAME" --db-type mariadb --db-host db --db-port 3306 --db-root-password "$$DB_PASSWORD" --admin-password "$$ADMIN_PASSWORD" --install-app crm --set-default
         fi
     environment:
       SITE_NAME: ${SITE_NAME:?SITE_NAME is required}
